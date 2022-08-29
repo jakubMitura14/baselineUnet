@@ -36,7 +36,8 @@
         "--net", "host", 
 		"--privileged" ,
         "-e", "DISPLAY=${env:DISPLAY}",
-        "-v", "/tmp/.X11-unix:/tmp/.X11-unix"
+        "-v", "/tmp/.X11-unix:/tmp/.X11-unix",
+		"-v","/var/run/docker.sock:/var/run/docker.sock"
 		],
 	// Add the IDs of extensions you want installed when the container is created.
 	"extensions": [
@@ -58,9 +59,13 @@
 	"features": {
 		"git": "latest",
 		// "git-lfs": "latest",
-		 "github-cli": "latest"
+		"github-cli": "latest"
+		// ,"docker-in-docker": "20.10",
+		// 	"docker-from-docker": "20.10"
+		
 		//"jupyterlab": "latest"
 	}
 }
 
 
+docker run --gpus='"device=0"' joeranbosma/picai_nnunet:latest

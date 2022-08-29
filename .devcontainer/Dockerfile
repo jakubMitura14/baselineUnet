@@ -51,6 +51,18 @@ RUN apt-get install python3-dev
 
 RUN python3.9 -m pip install --upgrade pip
 
+# set up user
+ENV NB_USER sliceruser
+ENV NB_UID 1000
+ENV HOME /home/${NB_USER}
+
+RUN adduser --disabled-password \
+    --gecos "Default user" \
+    --uid ${NB_UID} \
+    ${NB_USER}
+
+WORKDIR ${HOME}
+
 
 RUN python3.9 -m pip install --no-cache-dir jupyter matplotlib
 # RUN    pip install --no-cache-dir "intensity-normalization[ants]"
@@ -132,19 +144,19 @@ RUN python3.9 -m  pip install \
     itk-elastix==0.14.1 \
     zenodopy==0.2.0 \
     evalutils==0.3.0 \
-    # nnunet==1.7.0 \
-    # SimpleITK \
-    # git+https://github.com/balbasty/nitorch#egg=nitorch[all] \
-    # threadpoolctl==3.1.0 \
-    # batchgenerators==0.24 \
+    nnunet==1.7.0 \
+    SimpleITK \
+    git+https://github.com/balbasty/nitorch#egg=nitorch[all] \
+    threadpoolctl==3.1.0 \
+    batchgenerators==0.24 \
     # zenodo_get==1.3.4 \
-    # git+https://github.com/DIAGNijmegen/picai_baseline \
-    # git+https://github.com/DIAGNijmegen/picai_prep \
-    # git+https://github.com/DIAGNijmegen/picai_eval \
-    # #https://github.com/DIAGNijmegen/picai_prep/archive/refs/tags/v1.3.2.zip \
-    # KevinSR==0.1.19 \
-    # dask==2022.6.0 \
-    # intensity-normalization[ants] \
+    git+https://github.com/DIAGNijmegen/picai_baseline \
+    git+https://github.com/DIAGNijmegen/picai_prep \
+    git+https://github.com/DIAGNijmegen/picai_eval \
+    #https://github.com/DIAGNijmegen/picai_prep/archive/refs/tags/v1.3.2.zip \
+    KevinSR==0.1.19 \
+    dask==2022.6.0 \
+    intensity-normalization[ants] \
     # numba==0.55.2 \
     # pyro-ppl==1.8.1 \
     # warp-lang==0.2.3 \
@@ -177,9 +189,66 @@ RUN python3.9 -m  pip install ${HOME}/build
 RUN python3.9 -m pip install --upgrade jax jaxlib
 
 
-RUN git clone https://github.com/MIC-DKFZ/PROUNET.git ${HOME}/data/baseline
-RUN mkdir data
+#olld one
+RUN git clone https://github.com/MIC-DKFZ/PROUNET.git ${HOME}/data/baseline/old
+#from picai
+RUN git clone https://github.com/DIAGNijmegen/AbdomenMRUS-prostate-segmentation.git ${HOME}/data/baseline/mrusProstate
+RUN git clone https://github.com/DIAGNijmegen/picai_nnunet_semi_supervised_gc_algorithm.git ${HOME}/data/baseline/nnunetSemiSup
+RUN git clone https://github.com/DIAGNijmegen/prostateMR_3D-CAD-csPCa.git ${HOME}/data/baseline/#Dcad
+RUN git clone https://github.com/DIAGNijmegen/picai_unet_semi_supervised_gc_algorithm.git ${HOME}/data/baseline/seemiSupUnet
+
+
+
+# RUN curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+# RUN add-apt-repository \
+# "deb [arch=amd64] https://download.docker.com/linux/ubuntu \
+# $(lsb_release -cs) stable"
+# RUN apt-get update
+# RUN apt-get install docker-ce docker-ce-cli containerd.io
+
+# RUN curl https://get.docker.com | sh \
+#   && sudo systemctl --now enable docker
+
+# RUN apt-get update
+# RUN apt-get install -y nvidia-docker2
+# # RUN systemctl restart docker
+
+# RUN docker run -v /var/run/docker.sock:/var/run/docker.sock \
+#     docker run --rm --gpus all \
+#     nvidia/cuda:11.0-base \
+#     nvidia-smi
+
+
+RUN apt-get update && apt-get install -y \
+        apt-utils \
+        ca-certificates \
+        openssh-client \
+        curl \
+        iptables \
+        git \
+        gnupg \
+        supervisor && \
+    rm -rf /var/lib/apt/list/*
+
+# NVIDIA Container Toolkit & Docker
+RUN distribution=$(. /etc/os-release;echo $ID$VERSION_ID) && \
+    curl -s -L https://nvidia.github.io/nvidia-docker/gpgkey | apt-key add - && \
+    curl -s -L https://nvidia.github.io/nvidia-docker/$distribution/nvidia-docker.list | tee /etc/apt/sources.list.d/nvidia-docker.list && \
+    apt-get update && apt-get install -y nvidia-docker2 docker.io docker-compose && \
+    rm -rf /var/lib/apt/list/*
+
+COPY modprobe startup.sh /usr/local/bin/
+COPY supervisor/ /etc/supervisor/conf.d/
+COPY logger.sh /opt/bash-utils/logger.sh
+
+RUN chmod +x /usr/local/bin/startup.sh /usr/local/bin/modprobe
+VOLUME /var/lib/docker
+
+
 
 RUN git config --global user.name "Jakub Mitura"
 RUN git config --global user.email "jakub.mitura14@gmail.com"
 RUN git config -l
+
+ENTRYPOINT ["startup.sh"]
+CMD ["sh"]
