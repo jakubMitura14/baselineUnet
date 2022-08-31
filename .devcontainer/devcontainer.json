@@ -68,4 +68,4 @@
 }
 
 
-docker run --gpus='"device=0"' joeranbosma/picai_nnunet:latest
+// docker run --gpus='"device=0"' joeranbosma/picai_nnunet:latest
